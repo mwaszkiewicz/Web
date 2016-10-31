@@ -1,0 +1,28 @@
+{
+  "name": "web",
+  "version": "1.0.0",
+  "description": "Web Samples",
+  "main": "start.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/mwaszkiewicz/Web.git"
+  },
+  "keywords": [
+    "web"
+  ],
+  "author": "Mateusz Waszkiewicz",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/mwaszkiewicz/Web/issues"
+  },
+  "homepage": "https://github.com/mwaszkiewicz/Web#readme",
+  "dependencies": {
+    "express": "^4.14.0",
+    "formidable": "^1.0.17",
+    "mongoose": "^4.6.5",
+    "nodemon": "^1.11.0"
+  }
+}
