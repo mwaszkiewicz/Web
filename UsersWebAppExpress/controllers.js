@@ -1,96 +1,111 @@
-var mongoOp = require('./model/mongoDB.js');
+var mongo = require('mongodb');
+var templating = require('./templating.js');
 
-var findAll = function(req, res) {
-	mongoOp.find({}, function (err, data) {
-			if (err) {
-					res = { "error": true, "message": "Error fetching data" };
-			} else {
-					res = { "error": false, "message": data };
-			}
-			res.json(res);
+var Server = mongo.Server,
+    Db = mongo.Db,
+    BSON = mongo.BSONPure;
+
+var server = new Server('localhost', 27017, {
+    auto_reconnect: true
 });
-};
+db = new Db('Users', server);
 
-var findById = function(req, res) {
+db.open(function(err, db) {
+    if (!err) {
+        console.log("Connected to 'users' database");
+        db.collection('users', {
+            strict: true
+        }, function(err, collection) {
+            if (err) {
+                console.log("The 'users' collection doesn't exist.");
+            }
+        });
+    }
+});
+
+exports.findAll = function(req, res) {
+    db.collection('users', function(err, collection) {
+        collection.find().toArray(function(err, items) {
+            console.log(items);
+            templating.render(res, 'views/view.html', {
+                pageTitle: 'dupa',
+                users: JSON.stringify(items)
+            });
+        });
+    });
+};
+exports.findById = function(req, res) {
     var id = req.params.id;
-    console.log('Retrieving user by: ' + id);
-		mongoOp.findById(id, function (err, data) {
-				if (err) {
-						res = { "error": true, "message": "Error fetching data" };
-				} else {
-						res = { "error": false, "message": data };
-				}
-				res.json(res);
-		});
+    console.log('Retrieving user: ' + id);
+    db.collection('users', function(err, collection) {
+        collection.findOne({
+            '_id': new BSON.ObjectID(id)
+        }, function(err, item) {
+            res.send(item);
+        });
+    });
 };
 
-var addUser = function(req, res) {
-		var user = new mongoOp({
-				userName: req.body.userName,
-				fullName: req.body.fullName,
-				email: req.body.email
-		});
-		  console.log('Adding user: ' + user.userName);
-		user.save(function (err) {
-				if (err) {
-						res = { "error": true, "message": "Error adding data" };
-				} else {
-						res = { "error": false, "message": "Data added" };
-				}
-				res.json(res);
-		});
-}
+exports.addUser = function(req, res) {
+    var user = req.body;
+    console.log('Adding wine: ' + JSON.stringify(user));
+    db.collection('users', function(err, collection) {
+        collection.insert(user, {
+            safe: true
+        }, function(err, result) {
+            if (err) {
+                res.send({
+                    'error': 'An error has occurred'
+                });
+            } else {
+                console.log('Success: ' + JSON.stringify(result[0]));
+                res.send(result[0]);
+            }
+        });
+    });
+};
 
-var updateUser = function(req, res) {
+exports.updateUser = function(req, res) {
     var id = req.params.id;
     var user = req.body;
     console.log('Updating user: ' + id);
-		mongoOp.findById(id, function (err, data) {
-				if (err) {
-						res = { "error": true, "message": "Error fetching data" };
-				} else {
-						if (user.email !== undefined) {
-								data.email = user.email;
-						}
-						if (user.userName !== undefined) {
-								data.userName = user.userName;
-						}
-						if (user.fullName !== undefined) {
-								data.fullName = user.fullName;
-						}
-						data.save(function (err) {
-								if (err) {
-										res = { "error": true, "message": "Error updating data" };
-								} else {
-										res = { "error": false, "message": "Data is updated for " + req.params.id };
-								}
-								res.json(res);
-						})
-				}
-		});
-}
+    console.log(JSON.stringify(user));
+    db.collection('wines', function(err, collection) {
+        collection.update({
+            '_id': new BSON.ObjectID(id)
+        }, user, {
+            safe: true
+        }, function(err, result) {
+            if (err) {
+                console.log('Error updating wine: ' + err);
+                res.send({
+                    'error': 'An error has occurred'
+                });
+            } else {
+                console.log('' + result + ' document(s) updated');
+                res.send(user);
+            }
+        });
+    });
+};
 
-var deleteUser = function(req, res) {
+exports.deleteUser = function(req, res) {
     var id = req.params.id;
     console.log('Deleting user: ' + id);
-		mongoOp.findById(id, function (err, data) {
-				if (err) {
-						res = { "error": true, "message": "Error fetching data" };
-				} else {
-						mongoOp.remove({ _id: id }, function (err) {
-								if (err) {
-										res = { "error": true, "message": "Error deleting data" };
-								} else {
-										res = { "error": true, "message": "Data associated with " + id + "is deleted" };
-								}
-								res.json(res);
-						});
-				}
-		});
-}
-
-exports.findAll = findAll;
-exports.findById = findById;
-exports.add = addUser;
-exports.update = updateUser;
-exports.delete = deleteUser;
+    db.collection('users', function(err, collection) {
+        collection.remove({
+            '_id': new BSON.ObjectID(id)
+        }, {
+            safe: true
+        }, function(err, result) {
+            if (err) {
+                res.send({
+                    'error': 'An error has occurred - ' + err
+                });
+            } else {
+                console.log('' + result + ' document(s) deleted');
+                res.send(req.body);
+            }
+        });
+    });
+};
