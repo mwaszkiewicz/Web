@@ -1,4 +1,4 @@
-var express = require('express'),
+var express = require('express');
 var wine = require('./routes/wines');
 
 var app = express();
@@ -11,5 +11,3 @@ app.delete('/wines/:id', wine.deleteWine);
 
 app.listen(3000);
 console.log('Listening on port 3000...');
-
-
