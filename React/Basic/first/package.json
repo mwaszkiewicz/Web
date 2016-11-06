@@ -1,0 +1,16 @@
+{
+  "name": "first",
+  "version": "1.0.0",
+  "description": "first sample app",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "Mateusz Waszkiewicz",
+  "license": "ISC",
+  "dependencies": {
+    "gulp": "^3.9.1",
+    "react": "^15.3.2",
+    "react-dom": "^15.3.2"
+  }
+}
