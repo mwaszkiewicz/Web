@@ -110,3 +110,18 @@ exports.deleteUser = function(req, res) {
         });
     });
 };
+
+exports.getLabel = function(req, res) {
+  res.send({
+      'kuku': 'kukulele'
+  });
+};
+exports.getLabel2 = function(req, res) {
+  var user = req.body;
+  console.log('Adding wine: ' + JSON.stringify(user));
+
+              res.send({
+                  'error': 'An error has occurred'
+              });
+          
+};
