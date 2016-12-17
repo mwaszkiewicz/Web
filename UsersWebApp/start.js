@@ -1,12 +1,19 @@
+var express = require('express');
+var app = express();
 var controllers = require('./controllers.js');
-var server = require('./server.js');
 
-var routing = {
-	'/': controllers.index,
-	'/form': controllers.form,
-	'/save-form': controllers.saveForm,
-	'/404': controllers.error404,
-	'/view': controllers.view
-};
+app.get('/', function(req, res) {
+    res.sendFile(__dirname + '/views/index.html');
+});
 
-server.start(routing);
+app.get('/view', controllers.findAll);
+app.get('/users/:id', controllers.findById);
+app.post('/save-form', controllers.addUser);
+app.put('/users/:id', controllers.updateUser);
+app.delete('/users/:id', controllers.deleteUser);
+
+app.get('/label', controllers.getLabel);
+//app.post('/label2', controllers.getlabel2);
+
+app.listen(3000);
+console.log('Listening on port 3000...');

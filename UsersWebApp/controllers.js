@@ -1,162 +1,127 @@
-﻿
-var formidable = require('formidable');
-var mongodb = require("mongodb");
-var MongoClient = mongodb.MongoClient;
-var dbUrl = "mongodb://localhost:27017/Users";
+var mongo = require('mongodb');
 var templating = require('./templating.js');
 
+var Server = mongo.Server,
+    Db = mongo.Db,
+    BSON = mongo.BSONPure;
 
-function index(request, response) {
-    templating.render(response, 'views/index.html', {
-        pageTitle: 'Strona główna'
-    });
-}
+var server = new Server('localhost', 27017, {
+    auto_reconnect: true
+});
+db = new Db('Users', server);
 
-function form(request, response) {
-    templating.render(response, 'views/form.html', {
-        pageTitle: 'Formularz rejestracji'
-    });
-}
-
-function saveForm(request, response) {
-    if ("POST" === request.method) {
-        console.log('ok');
-        handleForm(request);
-
-    } else {
-        response.writeHead(301, {
-            'Content-type': 'text/plain'
+db.open(function(err, db) {
+    if (!err) {
+        console.log("Connected to 'users' database");
+        db.collection('users', {
+            strict: true
+        }, function(err, collection) {
+            if (err) {
+                console.log("The 'users' collection doesn't exist.");
+            }
         });
-        response.end('Only POST Method Available!');
     }
-}
+});
 
-function view(request, response) {
-    console.log('view');
-    getUsers(request, response);
-}
-
-function error404(request, response) {
-    templating.render(response, 'views/error404.html', {
-        pageTitle: 'Strona nie została znaleziona'
-    });
-}
-
-var onSaveError = function(response) {
-    templating.render(response, 'views/saveError.html', {
-        pageTitle: 'Wystąpił błąd zapisu!'
+exports.findAll = function(req, res) {
+    db.collection('users', function(err, collection) {
+        collection.find().toArray(function(err, items) {
+            // console.log(items);
+            // templating.render(res, 'views/view.html', {
+            //     pageTitle: 'dupa',
+            //     users: JSON.stringify(items)
+            // });
+            res.send(items);
+        });
     });
 };
-
-
-var onSaveSuccess = function(response, orderId) {
-    console.log(orderId);
-    templating.render(response, 'views/saveSuccess.html', {
-        pageTitle: 'Poprawnie zapisano!',
-        orderId: orderId
+exports.findById = function(req, res) {
+    var id = req.params.id;
+    console.log('Retrieving user: ' + id);
+    db.collection('users', function(err, collection) {
+        collection.findOne({
+            '_id': new BSON.ObjectID(id)
+        }, function(err, item) {
+            res.send(item);
+        });
     });
 };
 
-var saveIntoDb = function(data, onSuccess, onError) {
-    MongoClient.connect(dbUrl, function(err, db) {
-        if (err) {
-            onError();
-            console.log("Unable to connect to the mongoDB server. Error:", err);
-            return;
-        } else {
-            console.log("Connection established to", dbUrl);
-
-            var collection = db.collection("users");
-            var user = {
-                name: data.name,
-                age: data.age
-            };
-
-            collection.insert(user, function(err, result) {
-                if (err) {
-                    console.log(err);
-                } else {
-                    onSuccess(result);
-                    console.log(result);
-                }
-                db.close();
-            });
-        }
+exports.addUser = function(req, res) {
+    var user = req.body;
+    console.log('Adding wine: ' + JSON.stringify(user));
+    db.collection('users', function(err, collection) {
+        collection.insert(user, {
+            safe: true
+        }, function(err, result) {
+            if (err) {
+                res.send({
+                    'error': 'An error has occurred'
+                });
+            } else {
+                console.log('Success: ' + JSON.stringify(result[0]));
+                res.send(result[0]);
+            }
+        });
     });
 };
 
-var handleForm = function(request) {
-
-    var form = new formidable.IncomingForm();
-
-    form.parse(request, function(err, fields) {
-        if (err) {
-            onSaveError(response);
-            console.log(err);
-            return;
-        }
-
-        var saveData = {};
-        saveData.name = fields.name;
-        saveData.age = fields.age;
-
-        var onDbSuccess = function(result) {
-            return onSaveSuccess(response, result.insertedIds[0]);
-        };
-
-        var onDbError = function() {
-            return onSaveError(response);
-        };
-        saveIntoDb(saveData, onDbSuccess, onDbError);
+exports.updateUser = function(req, res) {
+    var id = req.params.id;
+    var user = req.body;
+    console.log('Updating user: ' + id);
+    console.log(JSON.stringify(user));
+    db.collection('wines', function(err, collection) {
+        collection.update({
+            '_id': new BSON.ObjectID(id)
+        }, user, {
+            safe: true
+        }, function(err, result) {
+            if (err) {
+                console.log('Error updating wine: ' + err);
+                res.send({
+                    'error': 'An error has occurred'
+                });
+            } else {
+                console.log('' + result + ' document(s) updated');
+                res.send(user);
+            }
+        });
     });
 };
 
-var getUsers = function(request, response) {
-    MongoClient.connect(dbUrl, function(err, db) {
-        if (err) {
-            onSaveError(response);
-            console.log("Unable to connect to the mongoDB server. Error:", err);
-            return;
-        } else {
-            console.log("Connection established to", dbUrl);
-
-            var collection = db.collection("users");
-
-            collection.find().limit(300).toArray(function(err, dataObjArr) {
-                var users = [];
-                var i = dataObjArr.length;
-                if (err) {
-                    onSaveError(response);
-                }
-
-                if (dataObjArr) {
-                    while (i--) {
-                        var user = new User(dataObjArr[i].name, dataObjArr[i].age);
-                        console.log("obj:", user.name + "user" + user);
-                        users.push(user);
-                    }
-                    db.close();
-                    templating.render(response, 'views/view.html', {
-                        pageTitle: 'view',
-                        users: JSON.stringify(users)
-                    });
-                }
-            });
-        }
+exports.deleteUser = function(req, res) {
+    var id = req.params.id;
+    console.log('Deleting user: ' + id);
+    db.collection('users', function(err, collection) {
+        collection.remove({
+            '_id': new BSON.ObjectID(id)
+        }, {
+            safe: true
+        }, function(err, result) {
+            if (err) {
+                res.send({
+                    'error': 'An error has occurred - ' + err
+                });
+            } else {
+                console.log('' + result + ' document(s) deleted');
+                res.send(req.body);
+            }
+        });
     });
 };
 
-function User(name, age) {
-    this.name = name;
-    this.age = age;
-}
-
-User.prototype.toString = function() {
-    return this.name + " " + this.age;
+exports.getLabel = function(req, res) {
+  res.send({
+      'kuku': 'kukulele'
+  });
 };
+exports.getLabel2 = function(req, res) {
+  var user = req.body;
+  console.log('Adding wine: ' + JSON.stringify(user));
 
-exports.index = index;
-exports.form = form;
-exports.saveForm = saveForm;
-exports.error404 = error404;
-exports.view = view;
+              res.send({
+                  'error': 'An error has occurred'
+              });
+          
+};
