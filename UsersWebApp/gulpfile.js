@@ -1,14 +1,3 @@
-// var gulp = require('gulp');
-// var jshint = require('gulp-jshint');
-//
-// var paths = {
-//     allScripts: ['gulpfile.js',
-//         'UsersWebAppExpress/*.js',
-//         'UsersWebApp/*.js',
-//         'Samples/*.js'
-//     ]
-// };
-
 var gulp = require('gulp');
 var jshint = require('gulp-jshint');
 var concat = require('gulp-concat');
